@@ -1,5 +1,5 @@
 # The address people type in the browser (public worker public IP)
-frontendOrigin: http://CHANGE-ME
+frontendOrigin: http://13.216.149.157
 
 replicas: 1
 
