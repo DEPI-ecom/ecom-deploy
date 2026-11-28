@@ -1,26 +1,56 @@
-# Marketly deployment charts
+# ecom-deploy
 
-This directory contains Helm charts for deploying Marketly and its observability stack to Kubernetes. Cluster provisioning remains in `ecom-infra`.
+What runs in the cluster. Argo CD watches this repo.
 
-## Layout
+```text
+argocd/
+  root.yaml             the root Application (applied once by Ansible)
+  apps/<name>.yaml      one Application per service
+charts/<name>/          one Helm chart per service
+  values.yaml           image, tag and replicas
+  templates/
+    deployment.yaml
+    service.yaml
+    configmap.yaml      only for services that need settings
+apps/observability/     monitoring (not deployed yet, see below)
+postgres/               database init script used by Docker Compose
+```
 
-- `charts/ecom-service`: reusable Deployment, Service, probe, and optional ServiceMonitor templates.
-- `apps/marketly`: umbrella chart configuring PostgreSQL, the web app, API gateway, and six backend services.
-- `charts/postgres`: PostgreSQL StatefulSet, ClusterIP Service, static local PV/PVC, and database bootstrap config.
-- `apps/observability`: upstream Grafana/Prometheus, Loki, and Alloy charts.
-- `postgres/init-databases.sql`: Compose bootstrap script; keep it synchronized with the copy packaged in `charts/postgres/files/`.
+App of apps: `root` watches `argocd/apps`, and each file there deploys one folder in `charts/`.
+To add a service, add its chart and one file in `argocd/apps`.
 
-## Configure and install with Helm
+Secrets are not in git. `configmap.yaml` holds normal settings; passwords come from the `marketly-secrets` Secret.
 
-1. Set the container registry and image tag in `apps/marketly/values/dev.yaml` or `prod.yaml`.
-2. Create `marketly-postgres-auth` in the `marketly` namespace with `username` and `password` keys. Create `marketly-runtime-secrets` there with `DATABASE_URL_USER`, `DATABASE_URL_CATALOG`, `DATABASE_URL_CART`, `DATABASE_URL_ORDER`, `DATABASE_URL_PAYMENT`, and `JWT_SECRET`. Each database URL should use `postgresql://<username>:<password>@postgres:5432/<service_db>` and match the password in `marketly-postgres-auth`.
-3. Build both charts' dependencies from the monorepo root: `helm dependency build ecom-deploy/apps/observability` and `helm dependency build ecom-deploy/apps/marketly`.
-4. Install observability first with `helm upgrade --install marketly-observability ecom-deploy/apps/observability -n monitoring --create-namespace -f ecom-deploy/apps/observability/values/prod.yaml`. After Prometheus Operator has installed its `ServiceMonitor` CRD, install Marketly with `helm upgrade --install marketly ecom-deploy/apps/marketly -n marketly --create-namespace -f ecom-deploy/apps/marketly/values/prod.yaml`. Use the corresponding `dev.yaml` files for development.
+The database names are listed twice: `charts/postgres/templates/configmap-init.yaml` and `postgres/init-databases.sql`.
 
-PostgreSQL is a single-replica StatefulSet. Its local PV points to `/mnt/postgres-data` on the labeled `db-worker`, backed by the EBS volume Terraform attaches in the isolated subnet. Set Terraform `db_volume_size` and Helm `postgres.persistence.size` to the same capacity. Ansible formats a new empty volume, mounts it, and assigns ownership to the PostgreSQL Alpine user before joining the node. The isolated worker AMI must already contain containerd, kubelet, kubeadm, kubectl, and the PostgreSQL image because the subnet has no internet route.
+How traffic flows:
 
-The Marketly services are ClusterIP-only behind ingress routes for the web app (`/`) and API gateway (`/api`). Install an ingress controller, then replace `marketly.example.com` and `https://marketly.example.com` in the values with the real frontend hostname. Create `grafana-admin` in the `monitoring` namespace with `admin-user` and `admin-password` keys. Credentials are provided through Kubernetes Secrets, not chart values.
+    browser -> public node :80 -> ecom-web -> /api -> ecom-api-gateway -> backend services -> postgres
 
-Prometheus scrapes services exposing `/metrics`: API gateway, cart, order, and payment. User, catalog, search, and web do not currently expose Prometheus metrics. Alloy runs on each node, collects Kubernetes pod logs, and writes them to Loki.
+## Before the first deploy
 
-The observability chart uses upstream Helm repositories and deploys Prometheus Operator CRDs via kube-prometheus-stack. Install it before Marketly so the `ServiceMonitor` CRD exists. For production, configure persistent storage, resource limits, authentication, and retention to match the cluster capacity and operational requirements.
+1. The cluster and Argo CD come from `ecom-infra`. Nodes need the labels `marketly.io/role=public`,
+   `backend` or `database`, and the database node the taint `marketly.io/role=database:NoSchedule`.
+2. All 8 images must exist in GHCR and be **public**.
+3. Set `frontendOrigin` in `charts/ecom-api-gateway/values.yaml`.
+4. Create the secret once, on the control plane. It is never committed.
+
+       kubectl create namespace marketly
+       kubectl -n marketly create secret generic marketly-secrets \
+         --from-literal=POSTGRES_PASSWORD="$(openssl rand -hex 16)" \
+         --from-literal=JWT_SECRET="$(openssl rand -hex 32)"
+
+   Postgres stores the password on first start. Creating a new secret later does not change it.
+5. Load the sample products once:
+
+       kubectl -n marketly exec deploy/ecom-catalog -- node prisma/seed.js
+
+## Deploying a new version
+
+Change `tag` in `charts/<service>/values.yaml` to the commit SHA that CI pushed, and commit. Argo CD does the rest.
+Roll back with `git revert`. Pushing a new `latest` image alone does not trigger Argo CD.
+
+## Monitoring
+
+`apps/observability` does not work on this cluster yet: the Alloy repository URL is wrong,
+Loki's default caches ask for about 11 GiB of memory, and there is no StorageClass for its volumes.

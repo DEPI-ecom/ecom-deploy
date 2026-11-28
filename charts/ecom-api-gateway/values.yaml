@@ -1,0 +1,7 @@
+# The address people type in the browser (public worker public IP)
+frontendOrigin: http://CHANGE-ME
+
+replicas: 1
+
+image: ghcr.io/depi-ecom/ecom-api-gateway
+tag: latest      # change this and commit to deploy a new version

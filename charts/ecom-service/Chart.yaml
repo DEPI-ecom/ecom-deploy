@@ -1,6 +1,0 @@
-apiVersion: v2
-name: ecom-service
-description: Reusable Kubernetes resources for a Marketly HTTP service
-type: application
-version: 0.1.0
-appVersion: "1.0.0"

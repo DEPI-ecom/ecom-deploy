@@ -1,0 +1,4 @@
+replicas: 1
+
+image: ghcr.io/depi-ecom/ecom-user
+tag: latest      # change this and commit to deploy a new version

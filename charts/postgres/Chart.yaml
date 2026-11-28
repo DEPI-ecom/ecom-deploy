@@ -1,6 +1,4 @@
 apiVersion: v2
 name: postgres
-description: PostgreSQL StatefulSet backed by a node-local persistent volume
-type: application
+description: PostgreSQL database
 version: 0.1.0
-appVersion: "17.12"

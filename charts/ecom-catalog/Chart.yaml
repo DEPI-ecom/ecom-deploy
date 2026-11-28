@@ -1,0 +1,4 @@
+apiVersion: v2
+name: ecom-catalog
+description: Products and categories
+version: 0.1.0
