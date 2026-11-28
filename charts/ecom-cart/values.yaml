@@ -1,4 +1,4 @@
 replicas: 1
 
 image: ghcr.io/depi-ecom/ecom-cart
-tag: "d1a6a948ef4078789ce8275d4c24e46420a3671b"
+tag: "7d0e4880a8fb6896a1c53f105d6c7d99e052208c"
