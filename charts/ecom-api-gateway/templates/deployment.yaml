@@ -16,7 +16,7 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       nodeSelector:
-        marketly.io/role: backend      # the two private nodes
+        marketly.io/role: public       # next to ecom-web
       containers:
         - name: ecom-api-gateway
           image: {{ .Values.image }}:{{ .Values.tag }}
