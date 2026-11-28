@@ -1,0 +1,4 @@
+apiVersion: v2
+name: ecom-search
+description: Product search
+version: 0.1.0

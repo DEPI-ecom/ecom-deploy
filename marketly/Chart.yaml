@@ -1,4 +1,0 @@
-apiVersion: v2
-name: marketly
-description: Marketly shop - web, API gateway, 6 backend services and postgres
-version: 0.1.0

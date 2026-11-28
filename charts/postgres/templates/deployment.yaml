@@ -1,0 +1,54 @@
+# One postgres pod on the database node. Its data lives on the EBS disk
+# that Ansible mounts at /mnt/postgres-data.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate      # never two postgres pods on the same data
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+      annotations:
+        # Restarts the pod when the ConfigMap changes
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      nodeSelector:
+        marketly.io/role: database
+      tolerations:
+        - key: marketly.io/role
+          value: database
+          effect: NoSchedule
+      containers:
+        - name: postgres
+          image: {{ .Values.image }}:{{ .Values.tag }}
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: marketly-secrets, key: POSTGRES_PASSWORD } }
+          readinessProbe:
+            exec:
+              command: [pg_isready, -U, marketly]
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: data
+          hostPath:
+            path: /mnt/postgres-data
+            type: Directory
+        - name: init
+          configMap:
+            name: postgres-init

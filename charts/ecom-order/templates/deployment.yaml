@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecom-order
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: ecom-order
+  template:
+    metadata:
+      labels:
+        app: ecom-order
+      annotations:
+        # Restarts the pods when the ConfigMap changes
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      nodeSelector:
+        marketly.io/role: backend      # the two private nodes
+      containers:
+        - name: ecom-order
+          image: {{ .Values.image }}:{{ .Values.tag }}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3005
+          envFrom:
+            - configMapRef:
+                name: ecom-order-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: marketly-secrets
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_URL
+              value: postgresql://marketly:$(POSTGRES_PASSWORD)@postgres:5432/orders_db
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: marketly-secrets
+                  key: JWT_SECRET
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3005

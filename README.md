@@ -3,13 +3,25 @@
 What runs in the cluster. Argo CD watches this repo.
 
 ```text
-marketly/               one Helm chart
-  values.yaml           public address and image tags (the only file you normally edit)
-  templates/            one file per service: its Deployment and Service
-argocd/marketly.yaml    the Argo CD Application
+argocd/
+  root.yaml             the root Application (applied once by Ansible)
+  apps/<name>.yaml      one Application per service
+charts/<name>/          one Helm chart per service
+  values.yaml           image, tag and replicas
+  templates/
+    deployment.yaml
+    service.yaml
+    configmap.yaml      only for services that need settings
 apps/observability/     monitoring (not deployed yet, see below)
 postgres/               database init script used by Docker Compose
 ```
+
+App of apps: `root` watches `argocd/apps`, and each file there deploys one folder in `charts/`.
+To add a service, add its chart and one file in `argocd/apps`.
+
+Secrets are not in git. `configmap.yaml` holds normal settings; passwords come from the `marketly-secrets` Secret.
+
+The database names are listed twice: `charts/postgres/templates/configmap-init.yaml` and `postgres/init-databases.sql`.
 
 How traffic flows:
 
@@ -20,7 +32,7 @@ How traffic flows:
 1. The cluster and Argo CD come from `ecom-infra`. Nodes need the labels `marketly.io/role=public`,
    `backend` or `database`, and the database node the taint `marketly.io/role=database:NoSchedule`.
 2. All 8 images must exist in GHCR and be **public**.
-3. Set `frontendOrigin` in `marketly/values.yaml`.
+3. Set `frontendOrigin` in `charts/ecom-api-gateway/values.yaml`.
 4. Create the secret once, on the control plane. It is never committed.
 
        kubectl create namespace marketly
@@ -35,7 +47,7 @@ How traffic flows:
 
 ## Deploying a new version
 
-Change a tag in `marketly/values.yaml` to the commit SHA that CI pushed, and commit. Argo CD does the rest.
+Change `tag` in `charts/<service>/values.yaml` to the commit SHA that CI pushed, and commit. Argo CD does the rest.
 Roll back with `git revert`. Pushing a new `latest` image alone does not trigger Argo CD.
 
 ## Monitoring

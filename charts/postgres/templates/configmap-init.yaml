@@ -1,0 +1,12 @@
+# Creates one database per service. Runs only on the first start.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+data:
+  init.sql: |
+    CREATE DATABASE users_db;
+    CREATE DATABASE catalog_db;
+    CREATE DATABASE cart_db;
+    CREATE DATABASE orders_db;
+    CREATE DATABASE payments_db;

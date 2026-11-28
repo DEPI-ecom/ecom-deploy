@@ -1,0 +1,4 @@
+apiVersion: v2
+name: ecom-cart
+description: Shopping cart
+version: 0.1.0
