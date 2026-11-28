@@ -1,4 +1,4 @@
 replicas: 1
 
 image: ghcr.io/depi-ecom/ecom-search
-tag: latest      # change this and commit to deploy a new version
+tag: "a3d9c3d5ba8bb4ac543dbe54f3b16940d0c159a0"
