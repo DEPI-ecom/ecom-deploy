@@ -1,0 +1,32 @@
+ecom-web:
+  image:
+    tag: dev
+  replicaCount: 1
+ecom-api-gateway:
+  image:
+    tag: dev
+  replicaCount: 1
+ecom-user:
+  image:
+    tag: dev
+  replicaCount: 1
+ecom-catalog:
+  image:
+    tag: dev
+  replicaCount: 1
+ecom-search:
+  image:
+    tag: dev
+  replicaCount: 1
+ecom-cart:
+  image:
+    tag: dev
+  replicaCount: 1
+ecom-order:
+  image:
+    tag: dev
+  replicaCount: 1
+ecom-payment:
+  image:
+    tag: dev
+  replicaCount: 1

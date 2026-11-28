@@ -1,0 +1,205 @@
+ecom-web:
+  fullnameOverride: ecom-web
+  image:
+    repository: ghcr.io/your-org/ecom-web
+    tag: latest
+  containerPort: 8080
+  service:
+    port: 8080
+  probes:
+    path: /
+  ingress:
+    enabled: false
+    hosts:
+      - host: marketly.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+
+ecom-api-gateway:
+  fullnameOverride: ecom-api-gateway
+  image:
+    repository: ghcr.io/your-org/ecom-api-gateway
+    tag: latest
+  containerPort: 8080
+  env:
+    - name: NODE_ENV
+      value: production
+    - name: PORT
+      value: "8080"
+    - name: USER_SERVICE_URL
+      value: http://ecom-user:3001
+    - name: CATALOG_SERVICE_URL
+      value: http://ecom-catalog:3002
+    - name: SEARCH_SERVICE_URL
+      value: http://ecom-search:3003
+    - name: CART_SERVICE_URL
+      value: http://ecom-cart:3004
+    - name: ORDER_SERVICE_URL
+      value: http://ecom-order:3005
+    - name: FRONTEND_ORIGIN
+      value: https://marketly.example.com
+  metrics:
+    enabled: true
+  ingress:
+    enabled: false
+    hosts:
+      - host: marketly.example.com
+        paths:
+          - path: /api
+            pathType: Prefix
+
+ecom-user:
+  fullnameOverride: ecom-user
+  image:
+    repository: ghcr.io/your-org/ecom-user
+    tag: latest
+  containerPort: 3001
+  env:
+    - name: NODE_ENV
+      value: production
+    - name: PORT
+      value: "3001"
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: marketly-runtime-secrets
+          key: DATABASE_URL_USER
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: marketly-runtime-secrets
+          key: JWT_SECRET
+
+ecom-catalog:
+  fullnameOverride: ecom-catalog
+  image:
+    repository: ghcr.io/your-org/ecom-catalog
+    tag: latest
+  containerPort: 3002
+  env:
+    - name: NODE_ENV
+      value: production
+    - name: PORT
+      value: "3002"
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: marketly-runtime-secrets
+          key: DATABASE_URL_CATALOG
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: marketly-runtime-secrets
+          key: JWT_SECRET
+
+ecom-search:
+  fullnameOverride: ecom-search
+  image:
+    repository: ghcr.io/your-org/ecom-search
+    tag: latest
+  containerPort: 3003
+  env:
+    - name: NODE_ENV
+      value: production
+    - name: PORT
+      value: "3003"
+    - name: CATALOG_SERVICE_URL
+      value: http://ecom-catalog:3002
+
+ecom-cart:
+  fullnameOverride: ecom-cart
+  image:
+    repository: ghcr.io/your-org/ecom-cart
+    tag: latest
+  containerPort: 3004
+  env:
+    - name: NODE_ENV
+      value: production
+    - name: PORT
+      value: "3004"
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: marketly-runtime-secrets
+          key: DATABASE_URL_CART
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: marketly-runtime-secrets
+          key: JWT_SECRET
+    - name: CATALOG_SERVICE_URL
+      value: http://ecom-catalog:3002
+  metrics:
+    enabled: true
+
+ecom-order:
+  fullnameOverride: ecom-order
+  image:
+    repository: ghcr.io/your-org/ecom-order
+    tag: latest
+  containerPort: 3005
+  env:
+    - name: NODE_ENV
+      value: production
+    - name: PORT
+      value: "3005"
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: marketly-runtime-secrets
+          key: DATABASE_URL_ORDER
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: marketly-runtime-secrets
+          key: JWT_SECRET
+    - name: USER_SERVICE_URL
+      value: http://ecom-user:3001
+    - name: CATALOG_SERVICE_URL
+      value: http://ecom-catalog:3002
+    - name: CART_SERVICE_URL
+      value: http://ecom-cart:3004
+    - name: PAYMENT_SERVICE_URL
+      value: http://ecom-payment:3006
+  metrics:
+    enabled: true
+
+ecom-payment:
+  fullnameOverride: ecom-payment
+  image:
+    repository: ghcr.io/your-org/ecom-payment
+    tag: latest
+  containerPort: 3006
+  env:
+    - name: NODE_ENV
+      value: production
+    - name: PORT
+      value: "3006"
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: marketly-runtime-secrets
+          key: DATABASE_URL_PAYMENT
+  metrics:
+    enabled: true
+
+postgres:
+  image:
+    repository: postgres
+    tag: 17.12-alpine
+    pullPolicy: IfNotPresent
+  database: postgres
+  auth:
+    existingSecret: marketly-postgres-auth
+    usernameKey: username
+    passwordKey: password
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClassName: marketly-postgres-local
+    volumeName: marketly-postgres-data
+    localPath: /mnt/postgres-data
+    nodeHostname: db-worker
+  nodeSelector:
+    marketly.io/role: database

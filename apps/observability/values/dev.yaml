@@ -1,0 +1,13 @@
+kube-prometheus-stack:
+  grafana:
+    persistence:
+      enabled: false
+  prometheus:
+    prometheusSpec:
+      retention: 3d
+      storageSpec: null
+
+loki:
+  singleBinary:
+    persistence:
+      enabled: false

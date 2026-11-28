@@ -1,0 +1,48 @@
+ecom-web:
+  image:
+    tag: stable
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: marketly.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+  replicaCount: 2
+ecom-api-gateway:
+  image:
+    tag: stable
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: marketly.example.com
+        paths:
+          - path: /api
+            pathType: Prefix
+  replicaCount: 2
+ecom-user:
+  image:
+    tag: stable
+  replicaCount: 2
+ecom-catalog:
+  image:
+    tag: stable
+  replicaCount: 2
+ecom-search:
+  image:
+    tag: stable
+  replicaCount: 2
+ecom-cart:
+  image:
+    tag: stable
+  replicaCount: 2
+ecom-order:
+  image:
+    tag: stable
+  replicaCount: 2
+ecom-payment:
+  image:
+    tag: stable
+  replicaCount: 2

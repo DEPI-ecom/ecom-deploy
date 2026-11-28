@@ -1,0 +1,14 @@
+kube-prometheus-stack:
+  grafana:
+    persistence:
+      enabled: true
+      size: 1Gi
+  prometheus:
+    prometheusSpec:
+      retention: 15d
+
+loki:
+  singleBinary:
+    persistence:
+      enabled: true
+      size: 1Gi

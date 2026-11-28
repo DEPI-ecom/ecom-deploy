@@ -1,0 +1,55 @@
+nameOverride: ""
+fullnameOverride: ""
+replicaCount: 1
+
+image:
+  repository: ghcr.io/your-org/marketly-service
+  tag: latest
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+containerPort: 3000
+service:
+  type: ClusterIP
+  port: null
+  annotations: {}
+
+env: []
+envFrom: []
+podAnnotations: {}
+podLabels: {}
+podSecurityContext: {}
+securityContext: {}
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: marketly.io/role
+              operator: NotIn
+              values:
+                - database
+
+probes:
+  enabled: true
+  path: /health
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+metrics:
+  enabled: false
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
